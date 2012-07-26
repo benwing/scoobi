@@ -7,7 +7,7 @@ name := "scoobi"
 
 organization := "com.nicta"
 
-version := "0.4.0"
+version := "0.4.0-benwing-SNAPSHOT"
 
 scalaVersion := "2.9.2"
 
@@ -59,6 +59,8 @@ publishTo <<= version { v: String =>
 publishMavenStyle := true
 
 publishArtifact in Test := false
+
+publishArtifact in packageDoc := false
 
 pomIncludeRepository := { x => false }
 
