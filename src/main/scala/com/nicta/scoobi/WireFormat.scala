@@ -45,6 +45,19 @@ trait WireFormatImplicits {
     override def fromWire(in: DataInput): T = apply()
   }
 
+  // A good idea -- just pass in the companion object of the case class,
+  // rather than having to pass in both apply and unapply methods.
+  // But fails due to an obscure error:
+  // [error] /Users/benwing/software/ben-scoobi/src/main/scala/com/nicta/scoobi/WireFormat.scala:48: Parameter type in structural refinement may not refer to an abstract type defined outside that refinement
+  // [error]   def mkCaseWireFormat[T, A1: WireFormat](cobj: {def apply(x: A1): T; def unapply(x: T): Option[(A1)]}): WireFormat[T] = new WireFormat[T] {
+  // [error]                                                      ^
+//  def mkCaseWireFormat[T, A1: WireFormat](cobj: {def apply(x: A1): T; def unapply(x: T): Option[(A2)]}): WireFormat[T] = new WireFormat[T] {
+//    override def toWire(obj: T, out: DataOutput) {
+//      implicitly[WireFormat[A1]].toWire(cobj.unapply(obj).get, out)
+//    }
+//    override def fromWire(in: DataInput): T = cobj.apply(implicitly[WireFormat[A1]].fromWire(in))
+//  }
+
   def mkCaseWireFormat[T, A1: WireFormat](apply: (A1) => T, unapply: T => Option[(A1)]): WireFormat[T] = new WireFormat[T] {
     override def toWire(obj: T, out: DataOutput) {
       implicitly[WireFormat[A1]].toWire(unapply(obj).get, out)
