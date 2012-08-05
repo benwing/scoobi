@@ -1,7 +1,16 @@
-// package com.nicta.scoobi
+// package com.nicta.scoobi.core
 
 import java.io._
 
+/**
+ * This contains code to auto-generate WireFormats for objects made up of
+ * multiple types (case classes, tuples, etc.).  It's not placed in a
+ * package so it can be loaded from the Scala interpreter (REPL), and it's
+ * given a suffix .scala.interp so that sbt won't try to compile it.
+ *
+ * The main entry point in `gen_files`, but see WireFormat.scala for more
+ * detailed instructions as to how to use the code.
+ */
 object GenWireFormat {
   def gen_files() {
     gen_file_1("sec1.ins", 22)
@@ -125,16 +134,16 @@ object GenWireFormat {
       (1 to numargs).map(x =>
 "        val %c = wt%d.fromWire(in)" format (lc_chr(x), x)) mkString "\n"
 """  implicit def Tuple%dFmt[%s]
-      (implicit %s) =
+  (implicit %s) =
     new WireFormat[(%s)] {
-      def toWire(x: (%s), out: DataOutput) = {
+      def toWire(x: (%s), out: DataOutput) {
 %s
       }
       def fromWire(in: DataInput): (%s) = {
 %s
         (%s)
       }
-  }
+    }
 """ format (numargs, gen_raw_args, gen_TupleFmt_args, gen_raw_args,
             gen_raw_args, gen_toWire_guts,
             gen_raw_args, gen_fromWire_guts, gen_raw_args_lc_chr)
