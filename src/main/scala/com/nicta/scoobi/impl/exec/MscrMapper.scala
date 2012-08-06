@@ -15,6 +15,7 @@
   */
 package com.nicta.scoobi.impl.exec
 
+import org.apache.commons.logging.LogFactory
 import org.apache.hadoop.mapreduce.{Mapper => HMapper}
 
 import com.nicta.scoobi.Emitter
@@ -25,6 +26,8 @@ import com.nicta.scoobi.impl.rtt.TaggedValue
 
 /** Hadoop Mapper class for an MSCR. */
 class MscrMapper[K1, V1, A, E, K2, V2] extends HMapper[K1, V1, TaggedKey, TaggedValue] {
+
+  lazy val logger = LogFactory.getLog("scoobi.Task")
 
   private type Mappers = Map[Int, (InputConverter[K1, V1, A], Set[(Env[_], TaggedMapper[A, _, _, _])])]
   private var inputs: Mappers = _
@@ -42,6 +45,10 @@ class MscrMapper[K1, V1, A, E, K2, V2] extends HMapper[K1, V1, TaggedKey, Tagged
     inputs = DistCache.pullObject[Mappers](context.getConfiguration, "scoobi.mappers").getOrElse(Map())
     val inputSplit = context.getInputSplit.asInstanceOf[TaggedInputSplit]
     val input: (InputConverter[K1, V1, A], Set[(Env[_], TaggedMapper[A, _, _, _])]) = inputs(inputSplit.channel)
+
+    val attemptid = context.getTaskAttemptID
+    logger.info("MapReduce map task '" + attemptid + "' starting on " + java.net.InetAddress.getLocalHost.getHostName)
+    logger.info("MapReduce map task '" + attemptid + "' input is " + inputSplit.inputSplit)
 
     converter = input._1.asInstanceOf[InputConverter[K1, V1, A]]
 
