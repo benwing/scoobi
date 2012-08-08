@@ -28,6 +28,7 @@ import org.apache.hadoop.mapreduce.lib.output.FileOutputFormat
 import org.apache.hadoop.io.RawComparator
 import scala.collection.mutable.{Map => MMap}
 import scala.collection.mutable.{MutableList=> MList}
+import scala.collection.JavaConversions._
 import Option.{apply => ?}
 
 import com.nicta.scoobi.io.DataSource
@@ -55,7 +56,7 @@ import com.nicta.scoobi.impl.rtt.TaggedGroupingComparator
 import com.nicta.scoobi.impl.rtt.ScoobiWritable
 import com.nicta.scoobi.impl.util.UniqueInt
 import com.nicta.scoobi.impl.util.JarBuilder
-import com.nicta.scoobi.{ScoobiConfiguration, Scoobi, WireFormat, Grouping}
+import com.nicta.scoobi.{ScoobiConfiguration, ScoobiEnvironment, Scoobi, WireFormat, Grouping}
 import ScoobiConfiguration._
 import com.nicta.scoobi.impl.plan._
 
@@ -255,6 +256,34 @@ class MapReduceJob(stepId: Int) {
 
     // Log any left over task details
     taskDetailsLogger.logTaskCompletionDetails()
+
+    // List of system counter groups, so they can be filtered out.
+    // This isn't perfect, since potentially these could be moved around.
+    // The display names ("Map-Reduce Framework", "Job Counters") haven't
+    // changed between 0.20 (aka 1.0) and 0.21 (aka 2.0), but using them
+    // is no good because they may be localized and show up in some foreign
+    // language.
+    lazy val systemCounterGroups = List(
+      "FileSystemCounters",
+      "org.apache.hadoop.mapred.Task$Counter",
+      "org.apache.hadoop.mapred.JobInProgress$Counter",
+      "org.apache.hadoop.mapreduce.TaskCounter",
+      "org.apache.hadoop.mapreduce.JobCounter"
+    )
+
+    // Log the counters, if the user asked for it
+    if (ScoobiEnvironment.logCounters) {
+      val counters = job.getCounters
+      logger.info("Counters: " + counters.size)
+      for (group <- counters if (
+             ScoobiEnvironment.logSystemCounters ||
+             !(systemCounterGroups contains group.getName))) {
+        logger.info("Counter Group: " + group.getDisplayName + " (" + group.getName + ")")
+        logger.info("  number of counters in this group: " + group.size)
+        for (counter <- group)
+          logger.info("  - " + counter.getDisplayName + ": " + counter.getValue)
+      }
+    }
 
     /* Move named file-based sinks to their correct output paths. */
     val outputFiles = fs.listStatus(tmpOutputPath) map { _.getPath }

@@ -20,6 +20,7 @@ import org.apache.hadoop.mapreduce.{Reducer => HReducer}
 import scala.collection.JavaConversions._
 
 import com.nicta.scoobi.Emitter
+import com.nicta.scoobi.ScoobiEnvironment
 import com.nicta.scoobi.io.OutputConverter
 import com.nicta.scoobi.impl.rtt.TaggedKey
 import com.nicta.scoobi.impl.rtt.TaggedValue
@@ -36,6 +37,7 @@ class MscrReducer[K2, V2, B, E, K3, V3] extends HReducer[TaggedKey, TaggedValue,
   private var channelOutput: ChannelOutputFormat = _
 
   override def setup(context: HReducer[TaggedKey, TaggedValue, K3, V3]#Context) = {
+    ScoobiEnvironment.setTaskContext(context)
     outputs = DistCache.pullObject[Reducers](context.getConfiguration, "scoobi.reducers").getOrElse(Map())
     channelOutput = new ChannelOutputFormat(context)
 

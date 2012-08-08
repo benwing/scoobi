@@ -19,6 +19,7 @@ import org.apache.commons.logging.LogFactory
 import org.apache.hadoop.mapreduce.{Mapper => HMapper}
 
 import com.nicta.scoobi.Emitter
+import com.nicta.scoobi.ScoobiEnvironment
 import com.nicta.scoobi.io.InputConverter
 import com.nicta.scoobi.impl.rtt.TaggedKey
 import com.nicta.scoobi.impl.rtt.TaggedValue
@@ -38,6 +39,7 @@ class MscrMapper[K1, V1, A, E, K2, V2] extends HMapper[K1, V1, TaggedKey, Tagged
 
   override def setup(context: HMapper[K1, V1, TaggedKey, TaggedValue]#Context) = {
 
+    ScoobiEnvironment.setTaskContext(context)
     tk = context.getMapOutputKeyClass.newInstance.asInstanceOf[TaggedKey]
     tv = context.getMapOutputValueClass.newInstance.asInstanceOf[TaggedValue]
 
