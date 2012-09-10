@@ -42,10 +42,16 @@ object Smart {
   /** GADT for distributed list computation graph. */
   sealed abstract class DComp[A : Manifest : WireFormat, Sh <: Shape] {
 
-    /* We don't want structural equality */
-    override def equals(arg0: Any): Boolean = eq(arg0.asInstanceOf[AnyRef])
-
     val id = Id.get
+
+    override def equals(other: Any) = {
+      other match {
+        case dc: DComp[_, _] => dc.id == this.id
+        case _               => false
+      }
+    }
+
+    override def hashCode = id
 
     def toVerboseString: String
 
