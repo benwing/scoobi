@@ -1,32 +1,43 @@
 package com.nicta.scoobi
 
 import org.apache.hadoop.mapreduce._
-import collection.JavaConversions._
+
+object ScoobiEnvironmentPrivate {
+  // NOTE: These objects cannot be serialized properly; hence they must be
+  // placed in a separate object to which there are no pointers. (There's
+  // a pointer to ScoobiEnvironment in the main `object Scoobi`.)
+
+  // On the job tracker, we need the Job object
+  private[scoobi] var job: Job = _
+  // On the task tracker, we need the context from the mapper or reducer
+  private[scoobi] var taskContext: TaskInputOutputContext[_,_,_,_] = _
+}
 
 /**
  * Interface for interacting more directly with the Hadoop environment,
  * e.g. accessing and setting counters.
  */
 object ScoobiEnvironment {
-
   ///////////// Keep track of job and task contexts
-  //
-  // FIXME: We don't yet actually set the job context, although we should.
-  // We should also consider propagating counters from one map-reduce job
-  // to the next, since a typical Scoobi job contains multiple map-reduce
-  // jobs, and the user probably doesn't care about this.
+  
+  /*
+  FIXME: The code below for tracking the job context isn't currently used.
+  It should be possible to retrieve counters programmatically after a call
+  to `persist` is made.  However, that requires
 
-  // On the job tracker, we need the Job object
-  private var job: Job = _
-  // On the task tracker, we need the context from the mapper or reducer
-  private var taskContext: TaskInputOutputContext[_,_,_,_] = _
+  (1) that we aggregate counters across different jobs executed in a single
+      `persist` call;
+  (2) that we provide a counter interface directly on a DList or DObject,
+      to retrieve the counters associated with the job(s) that were executed
+      in order to do the necessary distributed computations.
+  */
 
   /**
    * Set the Job object, if we're running the job-running code on the
    * job tracker.
    */
   private[scoobi] def setJob(job: Job) {
-    this.job = job
+    ScoobiEnvironmentPrivate.job = job
   }
 
   /**
@@ -34,7 +45,7 @@ object ScoobiEnvironment {
    * running on the job tracker.  If we're running on a task tracker,
    * this will be null.
    */
-  private[scoobi] def getJob = job
+  private[scoobi] def getJob = ScoobiEnvironmentPrivate.job
 
   /**
    * Set the task context, if we're running in the map or reduce task
@@ -42,7 +53,7 @@ object ScoobiEnvironment {
    * subclasses of TaskInputOutputContext.)
    */
   private[scoobi] def setTaskContext(context: TaskInputOutputContext[_,_,_,_]) {
-    this.taskContext = context
+    ScoobiEnvironmentPrivate.taskContext = context
   }
 
   /**
@@ -50,14 +61,15 @@ object ScoobiEnvironment {
    * if we are running on a task tracker. If we're running on the job tracker,
    * this will be null.
    */
-  def getTaskContext = taskContext
+  def getTaskContext = ScoobiEnvironmentPrivate.taskContext
 
   /**
-   * Return the JobContext object.  This is always available.
+   * Return the JobContext object.  This is available either when running on
+   * a task tracker or a job tracker.
    */
   private def getJobContext: JobContext = {
-    if (taskContext != null) taskContext
-    else if (job != null) job
+    if (getTaskContext != null) getTaskContext
+    else if (getJob != null) getJob
     else needToSetContext()
   }
 
@@ -82,10 +94,10 @@ object ScoobiEnvironment {
    * reduce task on a task tracker.
    */
   def findCounter(group: String, counter: String): Counter = {
-    if (taskContext != null)
-      taskContext.getCounter(group, counter)
-    else if (job != null)
-      job.getCounters.findCounter(group, counter)
+    if (getTaskContext != null)
+      getTaskContext.getCounter(group, counter)
+    else if (getJob != null)
+      getJob.getCounters.findCounter(group, counter)
     else
       needToSetContext()
   }
@@ -119,6 +131,9 @@ object ScoobiEnvironment {
    * @param enable Whether to log counters at the end of each mapreduce job
    * @param includeSystem Whether to include system-internal counters in
    *   the log (rather than just user-set counters)
+   *
+   * FIXME: There should be a programmatic interface to retrieve these
+   * counters. See FIXME comment above.
    */
   def enableCounterLogging(enable: Boolean = true,
       includeSystem: Boolean = false) {
@@ -133,7 +148,7 @@ object ScoobiEnvironment {
    * long operation that isn't interacting with Hadoop.
    */
   def heartbeat() {
-    if (taskContext != null)
-      taskContext.progress
+    if (getTaskContext != null)
+      getTaskContext.progress
   }
 }
