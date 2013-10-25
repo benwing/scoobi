@@ -19,6 +19,8 @@ package lib
 import Scoobi._
 import scala.collection.mutable.ArrayBuffer
 import LinearAlgebra._
+import core.WireFormat
+import WireFormat._
 
 /**
  * A distributed vector, stored in coordinate form.
@@ -148,7 +150,14 @@ case class DMatrix[Elem: Manifest: WireFormat: Ordering, Value: Manifest: WireFo
     add: (Q, Q) => Q): DVector[Elem, Q] = matrixByVector(this, v, mult, add)
 
 
-  def transpose: DMatrix[Elem, Value] = DMatrix(this.data map { case ((r, c), v) => ((c, r), v) })
+  // For Scala 2.10, need to do some nastiness to avoid "diverging implicits"
+  // error. Based on code taken from version 0.7.0.
+  def transpose: DMatrix[Elem, Value] = {
+    val ev = implicitly[Manifest[((Elem, Elem), Value)]]
+    val wfpair = WireFormat.Tuple2Fmt(WireFormat.Tuple2Fmt(wireFormatImplicit[Elem], wireFormatImplicit[Elem]), wireFormatImplicit[Value])
+    DMatrix(this.data.map { case ((r, c), v) => ((c, r), v) }(ev, wfpair))
+  }
+//  def transpose: DMatrix[Elem, Value] = DMatrix(this.data map { case ((r, c), v) => ((c, r), v) })
 }
 
 object LinearAlgebra {

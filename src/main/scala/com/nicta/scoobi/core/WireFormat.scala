@@ -40,6 +40,7 @@ trait WireFormat[A] {
 }
 
 object WireFormat extends WireFormatImplicits {
+  def wireFormatImplicit[A](implicit wf: WireFormat[A]): WireFormat[A] = wf
 
   // extend WireFormat with useful methods
   implicit def wireFormat[A](wf: WireFormat[A]): WireFormatX[A] = new WireFormatX[A](wf)

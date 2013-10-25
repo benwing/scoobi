@@ -5,7 +5,7 @@ organization := "com.nicta"
 
 version := "0.6.0-cdh3-SNAPSHOT-benwing"
 
-scalaVersion := "2.9.2"
+scalaVersion := "2.10.3"
 
 libraryDependencies ++= Seq(
   "javassist" % "javassist" % "3.12.1.GA",
@@ -13,11 +13,13 @@ libraryDependencies ++= Seq(
   "org.apache.avro" % "avro" % "1.7.2",
   "org.apache.hadoop" % "hadoop-core" % "0.20.2-cdh3u1",
   "com.thoughtworks.xstream" % "xstream" % "1.4.3" intransitive(),
-  "org.scalaz" %% "scalaz-core" % "7.0.0-M3",
+  "org.scalaz" %% "scalaz-core" % "7.1.0-M3",
+  // When building with Scala 2.9.2:
+  // "org.scalaz" %% "scalaz-core" % "7.0.3",
   "org.specs2" %% "specs2" % "1.12.3" % "optional",
-  "com.chuusai" %% "shapeless" % "1.2.2",
+  "com.chuusai" %% "shapeless" % "1.2.4",
   "org.specs2" % "classycle" % "1.4.1"% "test",
-  "org.scalacheck" %% "scalacheck" % "1.9" % "test",
+  "org.scalacheck" %% "scalacheck" % "1.10.1" % "test",
   "org.scala-tools.testing" % "test-interface" % "0.5" % "test",
   "org.hamcrest" % "hamcrest-all" % "1.1" % "test",
   "org.mockito" % "mockito-all" % "1.9.0" % "optional",
@@ -33,7 +35,9 @@ resolvers ++= Seq("cloudera" at "https://repository.cloudera.com/content/reposit
                   "sonatype" at "http://oss.sonatype.org/content/repositories/snapshots")
 
 /** Compilation */
-scalacOptions ++= Seq("-deprecation", "-Ydependent-method-types", "-unchecked")
+// When building with Scala 2.9.2:
+// scalacOptions ++= Seq("-deprecation", "-Ydependent-method-types", "-unchecked")
+scalacOptions ++= Seq("-deprecation", "-unchecked")
 
 /** Testing */
 testOptions := Seq(Tests.Filter(s => s.endsWith("Spec") ||
